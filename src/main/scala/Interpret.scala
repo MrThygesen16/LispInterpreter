@@ -17,6 +17,7 @@ package org.mq.interpret
 
 import scala.util.matching._
 
+
 object Interpret {
 
   sealed abstract class LObject
@@ -38,6 +39,10 @@ object Interpret {
   // so `name` -> `arg` | and then `arg` -> `body`
   val userFuncArgBody = scala.collection.mutable.Map[String,LObject]()
 
+  // for tokens to LObjs
+  val stack = scala.collection.mutable.Stack[LObject]()
+
+  val stack2 = List[LObject]()
 
   def resetEnv:Unit = 
   {
@@ -45,6 +50,7 @@ object Interpret {
     userVar.clear()
     userFunc.clear()
     userFuncArgBody.clear()
+    stack.clear()
   }
 
   //val pat = "[\\(\\)a-zA-Z]|[-?\\d]+|[+-/*]".r // for test case
@@ -76,6 +82,7 @@ object Interpret {
   }
 
 
+
   def tokensRestOfList(a:List[String]):LObject = a match {
     case Nil => nil
     case h :: t =>
@@ -102,13 +109,44 @@ object Interpret {
     
     val lst: LObject = a match{
       case Nil => nil
-      case h => tokensRestOfList(a)
+      case h => tokenHelper(a)
     } 
     
     //Some(eval(lst))
     Some(lst)
     
   }
+
+
+  def tokenHelper(a: List[String]):LObject = a match{
+
+    case Nil => stack.pop()
+  
+    case h :+ t => 
+      (h,t) match{
+
+        case (Nil, "(") => stack.pop()
+
+        case (_,"(") => 
+          stack.elems.length match {
+            case 0 => error
+            case 1 => nil
+            case _ => stack.push(LList(stack.pop(), stack.pop())); tokenHelper(h)
+          }
+
+           case (_,")") => stack.push(nil); tokenHelper(h)
+
+           case (_,_) => 
+            stack.elems.length match{
+              case 0 => stack.push(strToLObj(t)); tokenHelper(h)
+              case _ => stack.push(LList(strToLObj(t), stack.pop)); tokenHelper(h)
+            }
+
+      }
+
+  }
+
+
 
   // for testing
   def lineToLObj(line:String):LObject = tokensToLObjs(matchPat(line)) match{

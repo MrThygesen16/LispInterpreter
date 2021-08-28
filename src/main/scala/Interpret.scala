@@ -82,7 +82,7 @@ object Interpret {
   }
 
 
-
+  // unused function first attempt at tokensToLObjs
   def tokensRestOfList(a:List[String]):LObject = a match {
     case Nil => nil
     case h :: t =>
@@ -102,7 +102,6 @@ object Interpret {
       }   
   }
 
-
   def tokensToLObjs(a:List[String]):Option[LObject] = {
     // TO DO: convert a list of token strings to an LObject
     // NOTE: anywhere () is seen, it should be interpreted as nil
@@ -118,26 +117,33 @@ object Interpret {
   }
 
 
+  // recursive function for dealing with list of strings... (tokensToLObjs)
   def tokenHelper(a: List[String]):LObject = a match{
-
+    
+    // a is empty, return the stack...
     case Nil => stack.pop()
-  
+
+    // t is tail item, h is rest of list
     case h :+ t => 
       (h,t) match{
 
+        // if we come across last closing bracket it means we are done and can return
         case (Nil, "(") => stack.pop()
 
+        // opening bracket and still items in a
         case (_,"(") => 
-          stack.elems.length match {
+          (stack.length) match {
             case 0 => error
             case 1 => nil
             case _ => stack.push(LList(stack.pop(), stack.pop())); tokenHelper(h)
           }
 
+          // come across closing bracket
            case (_,")") => stack.push(nil); tokenHelper(h)
 
+          // all other cases we do this
            case (_,_) => 
-            stack.elems.length match{
+            (stack.length) match{
               case 0 => stack.push(strToLObj(t)); tokenHelper(h)
               case _ => stack.push(LList(strToLObj(t), stack.pop)); tokenHelper(h)
             }
@@ -154,6 +160,7 @@ object Interpret {
     case None    => error
   }
 
+  
   def setValue(varName:String, value:LObject):Unit = (varName, value) match {
     case(nameNumPat(_*), LNumber(x)) => userVar += (varName -> value)
     case(nameNumPat(_*), LList(x,y)) => userVar += (varName -> value)
